@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Super 电竞转转乐 - 复刻</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;700;900&display=swap');
+    :root{
+      --bg:#3a2060; /* deep purple */
+      --accent:#2de0d6;
+      --cyan:#7eeef0;
+    }
+    html,body{height:100vh;margin:0;padding:12px 0;font-family:Rubik, "Microsoft Yahei", sans-serif;background:linear-gradient(180deg, #2d2266 0%, #482172 50%, #6c1381 100%);overflow:hidden;box-sizing:border-box}
+    .stage{width:900px;height:830px;background:transparent;display:flex;box-shadow:0 8px 30px rgba(0,0,0,.4);position:relative;margin:0 auto;border-radius:4px;overflow:hidden}
+    /* left area */
+    .left{width:680px;padding:28px 30px;box-sizing:border-box;color:#fff}
+    header{display:flex;align-items:center;gap:18px}
+    .logo{width:120px;height:86px;background:transparent;display:flex;align-items:center;justify-content:center}
+    .title{font-size:56px;font-weight:900;letter-spacing:2px}
+    .sub{margin-top:16px;font-weight:700;text-align:center;font-size:26px}
+
+    /* wheel */
+    .wheel-wrap{display:block;position:relative;width:480px;margin:48px auto 0 auto}
+    .wheel{width:480px;height:480px;border-radius:50%;background:transparent;position:relative}
+    .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:110px;height:110px;border-radius:50%;background:#111;border:10px solid #222}
+
+    /* bottom buttons */
+    .controls{display:flex;justify-content:space-between;margin-top:40px;padding:0 16px}
+    .btn{background:#55f1e6;border-radius:12px;padding:14px 36px;color:#002b2b;font-weight:700;box-shadow:0 4px 0 rgba(0,0,0,.12);cursor:pointer;border:4px solid rgba(0,0,0,.07)}
+
+    /* right sidebar */
+    .right{width:220px;background:#fff;padding:18px;box-sizing:border-box;border-left:6px solid #2b1047}
+    .side-btn{background:#2b1a56;color:#fff;padding:14px;border-radius:14px;text-align:center;margin-bottom:12px;cursor:pointer}
+     .history{border:4px solid #000;height:480px;margin-top:6px;overflow-y:auto}
+    .summary{font-weight:900;margin-top:12px;text-align:center;font-size:24px}
+    .summary-box{height:54px;border:4px solid #000;margin-top:8px}
+
+    /* small text in wheel segments */
+    .seg-text{font-size:18px;fill:#fff;font-weight:700}
+
+    /* responsive for viewing in canvas */
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="left">
+      <header>
+        <div class="logo">
+          <img src="图片_20250908211843_131_177.png" alt="logo" style="display:block;width:120px;height:86px;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+          <div style="display:none;width:120px;height:86px;background:linear-gradient(45deg, #00bcd4, #2196f3);border-radius:10px;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;text-align:center;line-height:1.2">Super<br/>e-sport</div>
+        </div>
+        <div>
+          <div class="title">Super电竞转转乐</div>
+        </div>
+      </header>
+      <div class="sub" id="wheelSubtitle">5小金或1格或2格小红转盘</div>
+
+      <div class="wheel-wrap">
+        <!-- SVG wheel with 10 colored segments to mimic the image -->
+        <!-- 转盘指针：从中心圆盘边缘突出的小尖角 -->
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-65px);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:15px solid #1a1a1a;z-index:25;filter:drop-shadow(0 0px 0px rgba(0,0,0,.35))"></div>
+        <div class="wheel" id="wheel" style="margin:0 auto">
+          <svg viewBox="0 0 500 500" width="480" height="480" style="display:block">
+            <defs>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/>
+              </filter>
+            </defs>
+            <g transform="translate(250,250)">
+              <!-- segments: angles 36deg each for 10 segments -->
+              <!-- we'll draw arcs with path for visual similarity -->
+              <!-- colors chosen to match the sample -->
+              <!-- segment texts rotated to align -->
+              <!-- 外围粗边框（避免裁切，半径略小于 viewBox 一半） -->
+              <circle cx="0" cy="0" r="240" fill="none" stroke="#1a1a1a" stroke-width="12" />
+              
+              <g id="segments">
+                <!-- 扇形将由JavaScript动态生成 -->
+              </g>
+
+              <!-- labels injected by JS to ensure perfect centering per wedge -->
+              <g id="labels" font-family="'Microsoft Yahei', Arial" font-weight="700" font-size="22" fill="#fff" text-anchor="middle"></g>
+
+              <!-- center circle - 按图片还原：黑色外圈+细灰色环+黑色内心 -->
+              <circle cx="0" cy="0" r="55" fill="#1a1a1a" />
+              <circle cx="0" cy="0" r="33" fill="#666666" />
+              <circle cx="0" cy="0" r="25" fill="#1a1a1a" />
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="btn" onclick="exportData()">导出数据</div>
+        <div class="btn" onclick="document.getElementById('fileInput').click()">导入数据</div>
+        <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importData(event)">
+      </div>
+
+    </div>
+
+    <aside class="right">
+      <div class="side-btn" onclick="openWheelDialog()">转盘选择</div>
+      <div class="side-btn" onclick="resetStats()">复位</div>
+      <div style="text-align:center;font-size:20px;font-weight:900;margin-top:8px">历史记录</div>
+      <div class="history" id="history"></div>
+      <div class="summary">总计增加</div>
+      <div class="summary-box" id="totalDisplay" style="display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;">0w</div>
+    </aside>
+  </div>
+
+  <!-- 转盘选择弹窗 -->
+  <div id="wheelDialog" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border:6px solid #000;border-radius:8px;padding:20px;min-width:400px;">
+      <h3 style="margin-bottom:20px;text-align:center;color:#000;">选择转盘类型</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="wheel-choice" onclick="selectWheelType(0)" style="background:#5436e3;color:#fff;padding:15px;border-radius:10px;text-align:center;cursor:pointer;">5小金或1格或2格小红转盘</div>
+        <div class="wheel-choice" onclick="selectWheelType(1)" style="background:#5436e3;color:#fff;padding:15px;border-radius:10px;text-align:center;cursor:pointer;">4格或6格红转盘</div>
+        <div class="wheel-choice" onclick="selectWheelType(2)" style="background:#5436e3;color:#fff;padding:15px;border-radius:10px;text-align:center;cursor:pointer;">9格或12格红转盘</div>
+      </div>
+      <div style="text-align:center;margin-top:20px;">
+        <button onclick="closeWheelDialog()" style="background:#ccc;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 转盘配置
+    const wheelConfigs = [
+      {
+        name: "5小金或1格或2格小红转盘",
+        segments: [
+          { text: "10W", value: 10, probability: 10 },
+          { text: "谢谢参与", value: 0, probability: 10 },
+          { text: "100W", value: 100, probability: 5 },
+          { text: "80W", value: 80, probability: 10 },
+          { text: "60W", value: 60, probability: 5 },
+          { text: "50W", value: 50, probability: 30 },
+          { text: "40W", value: 40, probability: 5 },
+          { text: "30W", value: 30, probability: 20 },
+          { text: "20W", value: 20, probability: 5 },
+          { text: "10W", value: 10, probability: 10 }
+        ]
+      },
+      {
+        name: "4格或6格红转盘",
+        segments: [
+          { text: "30W", value: 30, probability: 9 },
+          { text: "50W", value: 50, probability: 10 },
+          { text: "80W", value: 80, probability: 13 },
+          { text: "100W", value: 100, probability: 30 },
+          { text: "150W", value: 150, probability: 5 },
+          { text: "200W", value: 200, probability: 3 },
+          { text: "下次2倍", value: 0, probability: 10, special: "double" },
+          { text: "增加3次", value: 0, probability: 10, special: "add3" },
+          { text: "谢谢参与", value: 0, probability: 10 }
+        ]
+      },
+      {
+        name: "9格或12格红转盘",
+        segments: [
+          { text: "50W", value: 50, probability: 5 },
+          { text: "80W", value: 80, probability: 10 },
+          { text: "100W", value: 100, probability: 12 },
+          { text: "150W", value: 150, probability: 16 },
+          { text: "200W", value: 200, probability: 30 },
+          { text: "500W", value: 500, probability: 10 },
+          { text: "1000W", value: 1000, probability: 2 },
+          { text: "下次3倍", value: 0, probability: 5, special: "triple" },
+          { text: "增加6次", value: 0, probability: 5, special: "add6" },
+          { text: "谢谢参与", value: 0, probability: 5 }
+        ]
+      }
+    ];
+
+    // 游戏状态
+    let currentWheel = 0;
+    let totalValue = 0;
+    let history = [];
+    let isSpinning = false;
+    let multiplier = 1;
+    let multiplierCount = 0;
+    let maxMultiplierCount = 0;
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      loadData();
+      updateWheelDisplay();
+      updateDisplay();
+    });
+
+    // 颜色配置
+    const colors = ['#e53e3e', '#fd7014', '#e53e8e', '#a855f7', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#dc2626'];
+    
+    // 更新转盘扇形和标签
+    function placeLabels() {
+      const config = wheelConfigs[currentWheel];
+      const segments = config.segments;
+      const segmentsGroup = document.getElementById('segments');
+      const labels = document.getElementById('labels');
+      
+      // 清空现有内容
+      segmentsGroup.innerHTML = '';
+      labels.innerHTML = '';
+      
+      const segmentCount = segments.length;
+      const step = 360 / segmentCount;
+      // 统一半径：略小于 viewBox，避免被裁切
+      const RING_RADIUS = 236;
+      // 文本锚点半径：靠外侧，让“首字”靠近外圈
+      const LABEL_RADIUS = 210;
+      const start = -90 + step/2;
+      
+      // 生成扇形
+      segments.forEach((segment, i) => {
+        const startAngle = (i * step - 90) * Math.PI / 180;
+        const endAngle = ((i + 1) * step - 90) * Math.PI / 180;
+        
+        const x1 = Math.cos(startAngle) * RING_RADIUS;
+        const y1 = Math.sin(startAngle) * RING_RADIUS;
+        const x2 = Math.cos(endAngle) * RING_RADIUS;
+        const y2 = Math.sin(endAngle) * RING_RADIUS;
+        
+        const largeArcFlag = step > 180 ? 1 : 0;
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M0 0 L${x1.toFixed(2)} ${y1.toFixed(2)} A${RING_RADIUS} ${RING_RADIUS} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`);
+        path.setAttribute('fill', colors[i % colors.length]);
+        path.setAttribute('stroke', '#2d2d2d');
+        path.setAttribute('stroke-width', '3');
+        
+        segmentsGroup.appendChild(path);
+        
+        // 添加文字
+        const angleDeg = (start + i*step);
+        const angle = angleDeg * Math.PI/180;
+        const x = Math.cos(angle) * LABEL_RADIUS;
+        const y = Math.sin(angle) * LABEL_RADIUS;
+        const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x', x.toFixed(2));
+        t.setAttribute('y', y.toFixed(2));
+        // 首字朝外，尾部朝里：使用起点锚点
+        t.setAttribute('text-anchor','start');
+        t.setAttribute('dominant-baseline','middle');
+        // 沿半径方向向内排布（反向180度）
+        t.setAttribute('transform', `rotate(${(angleDeg+180).toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)})`);
+        t.textContent = segment.text;
+        labels.appendChild(t);
+      });
+    }
+
+    // 更新转盘显示
+    function updateWheelDisplay() {
+      document.getElementById('wheelSubtitle').textContent = wheelConfigs[currentWheel].name;
+      placeLabels();
+    }
+
+    // 转盘选择弹窗
+    function openWheelDialog() {
+      document.getElementById('wheelDialog').style.display = 'flex';
+    }
+
+    function closeWheelDialog() {
+      document.getElementById('wheelDialog').style.display = 'none';
+    }
+
+    function selectWheelType(index) {
+      currentWheel = index;
+      updateWheelDisplay();
+      closeWheelDialog();
+      saveData();
+    }
+
+    // 转盘旋转
+    function spinWheel() {
+      if (isSpinning) return;
+      
+      isSpinning = true;
+      const config = wheelConfigs[currentWheel];
+      const result = getRandomResult(config.segments);
+      
+      const wheel = document.getElementById('wheel');
+      const segmentCount = config.segments.length;
+      const segmentAngle = 360 / segmentCount;
+      // 计算目标扇形的中心角度（指针在顶部）
+      const targetAngle = result.index * segmentAngle + (segmentAngle / 2);
+      const spins = Math.floor(Math.random() * 5 + 15); // 15-19圈，始终大力转动
+      // 增加随机偏移，让每次旋转都看起来自然
+      const randomOffset = Math.random() * 60 - 30; // -30到+30度的随机偏移
+      // 让指针指向目标扇形
+      const finalAngle = spins * 360 + targetAngle + randomOffset;
+      
+      wheel.style.transition = 'transform 4s cubic-bezier(.16,.84,.3,1)';
+      wheel.style.transform = `rotate(${finalAngle}deg)`;
+      
+      setTimeout(() => {
+        showResult(result.segment);
+        isSpinning = false;
+      }, 4000);
+    }
+
+    // 根据概率获取随机结果
+    function getRandomResult(segments) {
+      const totalProbability = segments.reduce((sum, segment) => sum + segment.probability, 0);
+      let random = Math.random() * totalProbability;
+      
+      for (let i = 0; i < segments.length; i++) {
+        random -= segments[i].probability;
+        if (random <= 0) {
+          return { segment: segments[i], index: i };
+        }
+      }
+      
+      return { segment: segments[0], index: 0 };
+    }
+
+    // 显示结果
+    function showResult(segment) {
+      let actualValue = segment.value;
+      let message = '';
+      
+      if (segment.special) {
+        switch (segment.special) {
+          case 'double':
+            multiplier = 2;
+            multiplierCount = 1;
+            message = '下次奖励将翻倍！';
+            break;
+          case 'triple':
+            multiplier = 3;
+            multiplierCount = 1;
+            message = '下次奖励将三倍！';
+            break;
+          case 'add3':
+            maxMultiplierCount += 3;
+            message = '增加了3次上限次数！';
+            break;
+          case 'add6':
+            maxMultiplierCount += 6;
+            message = '增加了6次上限次数！';
+            break;
+        }
+      } else if (segment.value > 0) {
+        if (multiplierCount > 0) {
+          actualValue = segment.value * multiplier;
+          message = `获得 ${segment.text}，倍数加成：${multiplier}倍！实际获得：${actualValue}W`;
+          multiplierCount--;
+          
+          if (multiplierCount === 0) {
+            multiplier = 1;
+          }
+        } else {
+          message = `获得 ${segment.text}`;
+        }
+        
+        totalValue += actualValue;
+      } else {
+        message = segment.text;
+      }
+      
+      // 添加到历史记录
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      history.unshift({
+        time: timeString,
+        wheel: wheelConfigs[currentWheel].name,
+        result: segment.text,
+        value: actualValue,
+        message: message
+      });
+      
+      if (history.length > 100) {
+        history = history.slice(0, 100);
+      }
+      
+      alert(message);
+      updateDisplay();
+      saveData();
+    }
+
+    // 更新显示
+    function updateDisplay() {
+      document.getElementById('totalDisplay').textContent = `${totalValue}W`;
+      
+      const historyDiv = document.getElementById('history');
+      historyDiv.innerHTML = '';
+      
+      history.forEach(item => {
+        const div = document.createElement('div');
+        div.style.padding = '8px';
+        div.style.borderBottom = '1px solid #ddd';
+        div.style.fontSize = '12px';
+        div.innerHTML = `
+          <div style="font-weight:bold">${item.time} - ${item.result}</div>
+          <div style="color:#666">${item.message}</div>
+        `;
+        historyDiv.appendChild(div);
+      });
+      
+      if (multiplierCount > 0) {
+        document.getElementById('wheelSubtitle').textContent = `${wheelConfigs[currentWheel].name} (下次${multiplier}倍！)`;
+      }
+    }
+
+    // 复位功能
+    function resetStats() {
+      if (confirm('确定要重置所有统计数据吗？')) {
+        totalValue = 0;
+        multiplier = 1;
+        multiplierCount = 0;
+        maxMultiplierCount = 0;
+        history = [];
+        updateDisplay();
+        updateWheelDisplay();
+        saveData();
+      }
+    }
+
+    // 导出数据
+    function exportData() {
+      const data = {
+        totalValue,
+        multiplier,
+        multiplierCount,
+        maxMultiplierCount,
+        history,
+        currentWheel,
+        exportTime: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `转盘数据_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 导入数据
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          
+          if (confirm('确定要导入数据吗？这将覆盖现有数据。')) {
+            totalValue = data.totalValue || 0;
+            multiplier = data.multiplier || 1;
+            multiplierCount = data.multiplierCount || 0;
+            maxMultiplierCount = data.maxMultiplierCount || 0;
+            history = data.history || [];
+            currentWheel = data.currentWheel || 0;
+            
+            updateDisplay();
+            updateWheelDisplay();
+            saveData();
+            alert('数据导入成功！');
+          }
+        } catch (error) {
+          alert('导入数据格式错误！');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // 保存数据到本地存储
+    function saveData() {
+      const data = {
+        totalValue,
+        multiplier,
+        multiplierCount,
+        maxMultiplierCount,
+        history,
+        currentWheel
+      };
+      localStorage.setItem('wheelData', JSON.stringify(data));
+    }
+
+    // 从本地存储加载数据
+    function loadData() {
+      const saved = localStorage.getItem('wheelData');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          totalValue = data.totalValue || 0;
+          multiplier = data.multiplier || 1;
+          multiplierCount = data.multiplierCount || 0;
+          maxMultiplierCount = data.maxMultiplierCount || 0;
+          history = data.history || [];
+          currentWheel = data.currentWheel || 0;
+        } catch (error) {
+          console.error('加载数据失败:', error);
+        }
+      }
+    }
+
+    // 点击转盘旋转
+    document.getElementById('wheel').addEventListener('click', spinWheel);
+  </script>
+</body>
+</html>
